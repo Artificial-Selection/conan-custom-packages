@@ -14,7 +14,14 @@ jobs:
       packages: ${{ steps.set-matrix.outputs.packages }}
 
     steps:
-      - name: Get source code
+      - name: Get source code (Pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Get source code (Push to master)
+        if: ${{ github.event_name == 'push' && github.event.ref == 'refs/heads/master' }}
         uses: actions/checkout@v2
 
       # About $GITHUB_SHA https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
