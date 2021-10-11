@@ -23,8 +23,8 @@ jobs:
         run: |
           if [ $GITHUB_BASE_REF ]; then
             echo Pull
-            # export PREVIOUS_SHA="origin/$GITHUB_BASE_REF"
-            export PREVIOUS_SHA="${{ github.event.pull_request.base.sha }}"
+             export PREVIOUS_SHA="origin/$GITHUB_BASE_REF"
+            # export PREVIOUS_SHA="${{ github.event.pull_request.base.sha }}"
           else
             echo Push
             export PREVIOUS_SHA="${{ github.event.before }}"
@@ -33,6 +33,7 @@ jobs:
 
           echo PREVIOUS_SHA: $PREVIOUS_SHA
           echo CURRENT_SHA: $CURRENT_SHA
+          echo GITHUB_SHA: $GITHUB_SHA
 
           JSON_PACKAGES=$( python generate_matrix.py )
           echo $JSON_PACKAGES
