@@ -81,12 +81,12 @@ jobs:
         run: |
           export PACKAGE_NAME=${{ matrix.package }}
           PACKAGE_VERSION=$( python get_current_version.py )
-          PROFILE_PATH=$( ".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" )
+          # PROFILE_PATH=$( ".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" )
 
-          echo $PROFILE_PATH
+          # echo $PROFILE_PATH
 
-          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=$PROFILE_PATH -s build_type=Debug
-          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=$PROFILE_PATH -s build_type=Release
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" -s build_type=Debug
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" -s build_type=Release
 
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo DRY UPLOAD
