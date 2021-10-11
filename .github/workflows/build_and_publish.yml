@@ -1,10 +1,13 @@
-name: "Build and publish"
+name: "Create and publish"
 
 on:
-  #push:
-  #  branches: [ master ]
+  push:
+    branches: [ master ]
   pull_request:
     branches: [ master ]
+
+env:
+  PYTHON_VERSION: "3.9.7"
 
 jobs:
   generate-matrix:
@@ -14,14 +17,33 @@ jobs:
       packages: ${{ steps.set-matrix.outputs.packages }}
 
     steps:
-      - name: Check changed packages nad generate matrix
+      - name: Get source code
+        uses: actions/checkout@v2
+
+      # About $GITHUB_SHA https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
+      # Don't know if I should use "origin/$GITHUB_BASE_REF" or ${{ github.event.pull_request.base.sha }}, same?
+      - name: Check changed packages and generate matrix
         id: set-matrix
         run: |
+          if [ $GITHUB_BASE_REF ]; then
+            echo Pull
+            export PREVIOUS_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            echo Push
+            export PREVIOUS_SHA="${{ github.event.before }}"
+          fi
+          export CURRENT_SHA="$GITHUB_SHA"
+
+          echo PREVIOUS_SHA: $PREVIOUS_SHA
+          echo CURRENT_SHA: $CURRENT_SHA
+
+          git fetch origin $PREVIOUS_SHA --depth=1
+
           JSON_PACKAGES=$( python generate_matrix.py )
           echo $JSON_PACKAGES
           echo "::set-output name=packages::$( echo $JSON_PACKAGES )"
 
-  build:
+  create-package:
     needs: generate-matrix
 
     strategy:
@@ -29,10 +51,44 @@ jobs:
       matrix:
         os: [windows-2019]
         compiler: [msvc]
-        package: ${{fromJson(needs.generate-matrix.outputs.packages)}}
+        package: ${{ fromJson(needs.generate-matrix.outputs.packages) }}
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Print
-        run: echo ${{ matrix.package }}
+      - name: Get source code
+        uses: actions/checkout@v2
+
+      - name: Install python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          architecture: 'x64'
+
+      - name: Install conan
+        run: |
+          pip install wheel setuptools
+          pip install conan
+
+      - name: Setup conan.conf
+        run: |
+          conan remote add gitlab https://gitlab.com/api/v4/projects/28364651/packages/conan
+          conan config set general.revisions_enabled=1
+          conan user "${{ secrets.GITLAB_USERNAME }}" -r gitlab -p "${{ secrets.GITLAB_ACCESS_TOKEN }}"
+
+      - name: Create ${{ matrix.package }} package
+        shell: bash
+        run: |
+          export PACKAGE_NAME=${{ matrix.package }}
+          PACKAGE_VERSION=$( python get_current_version.py )
+
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -s build_type=Debug
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -s build_type=Release
+
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo DRY UPLOAD
+            conan upload $PACKAGE_VERSION --all --check --remote gitlab --skip-upload
+          else
+            echo ACTUAL UPLOAD
+            conan upload $PACKAGE_VERSION --all --check --remote gitlab
+          fi
