@@ -1,6 +1,7 @@
 import os
 
 package_to_version = {
+    'assimp': 'assimp/5.0.1@snv/stable',
       'entt': 'entt/3.8.1@snv/stable',
       'glad': 'glad/0.1.34@snv/stable',
       'glfw': 'glfw/3.3.4@snv/stable',
