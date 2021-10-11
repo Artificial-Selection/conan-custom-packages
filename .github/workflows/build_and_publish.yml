@@ -1,0 +1,38 @@
+name: "Build and publish"
+
+on:
+  #push:
+  #  branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  generate-matrix:
+    name: "Generate matrix"
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.set-matrix.outputs.packages }}
+
+    steps:
+      - name: Check changed packages nad generate matrix
+        id: set-matrix
+        run: |
+          JSON_PACKAGES=$( python generate_matrix.py )
+          echo $JSON_PACKAGES
+          echo "::set-output name=packages::$( echo $JSON_PACKAGES )"
+
+  build:
+    needs: generate-matrix
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2019]
+        compiler: [msvc]
+        package: ${{fromJson(needs.generate-matrix.outputs.packages)}}
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Print
+        run: echo ${{ matrix.package }}
