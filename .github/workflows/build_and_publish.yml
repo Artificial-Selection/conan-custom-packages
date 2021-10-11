@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  PYTHON_VERSION: "3.9.7"
+
 jobs:
   generate-matrix:
     name: "Generate matrix"
@@ -70,7 +73,7 @@ jobs:
           echo $JSON_PACKAGES
           echo "::set-output name=packages::$( echo $JSON_PACKAGES )"
 
-  build:
+  create-package:
     needs: generate-matrix
 
     strategy:
@@ -83,5 +86,38 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Print
-        run: echo ${{ matrix.package }}
+      - name: Get source code
+        uses: actions/checkout@v2
+
+      - name: Install python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          architecture: 'x64'
+
+      - name: Install conan
+        run: |
+          pip install wheel setuptools
+          pip install conan
+
+      - name: Setup conan.conf
+        run: |
+          conan remote add gitlab https://gitlab.com/api/v4/projects/28364651/packages/conan
+          conan config set general.revisions_enabled=1
+          conan user "${{ secrets.GITLAB_USERNAME }}" -r gitlab -p "${{ secrets.GITLAB_ACCESS_TOKEN }}"
+
+      - name: Create ${{ matrix.package }} conan package
+        shell: bash
+        run: |
+          export PACKAGE_NAME=${{ matrix.package }}
+          PACKAGE_VERSION=$( python get_current_version.py )
+
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -s build_type=Debug
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -s build_type=Release
+
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            conan upload $PACKAGE_VERSION --all --check --remote gitlab --skip-upload
+          else
+            echo ACTUAL UPLOAD
+            # conan upload $PACKAGE_VERSION --all --check --remote gitlab
+          fi
