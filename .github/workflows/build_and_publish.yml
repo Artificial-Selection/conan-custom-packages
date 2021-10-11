@@ -1,4 +1,4 @@
-name: "Build and publish"
+name: "Create and publish"
 
 on:
   push:
@@ -17,35 +17,8 @@ jobs:
       packages: ${{ steps.set-matrix.outputs.packages }}
 
     steps:
-      #- name: Get source code (Pull request)
-      #  if: ${{ github.event_name == 'pull_request' }}
-      #  uses: actions/checkout@v2
-      #  with:
-      #    ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Get source code (Push to master)
-        #if: ${{ github.event_name == 'push' && github.event.ref == 'refs/heads/master' }}
+      - name: Get source code
         uses: actions/checkout@v2
-
-      - name: Git diff test
-        run: |
-          if [ $GITHUB_BASE_REF ]; then
-            echo Pull
-            git fetch origin ${{ github.event.pull_request.base.sha }} --depth=1
-            # export PREVIOUS_SHA="origin/$GITHUB_BASE_REF"
-            export PREVIOUS_SHA="${{ github.event.pull_request.base.sha }}"
-            # export CURRENT_SHA="${{ github.event.pull_request.head.sha }}"
-          else
-            echo Push
-            git fetch origin ${{ github.event.before }} --depth=1
-            export PREVIOUS_SHA="${{ github.event.before }}"
-            # export CURRENT_SHA="$GITHUB_SHA"
-          fi
-
-          export CURRENT_SHA="$GITHUB_SHA"
-
-          git log --graph --all
-          git diff --name-only $PREVIOUS_SHA $CURRENT_SHA -- ./packages/imgui
 
       # About $GITHUB_SHA https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
       # Don't know if I should use "origin/$GITHUB_BASE_REF" or ${{ github.event.pull_request.base.sha }}, same?
@@ -54,20 +27,17 @@ jobs:
         run: |
           if [ $GITHUB_BASE_REF ]; then
             echo Pull
-            # export PREVIOUS_SHA="origin/$GITHUB_BASE_REF"
             export PREVIOUS_SHA="${{ github.event.pull_request.base.sha }}"
-            # export CURRENT_SHA="${{ github.event.pull_request.head.sha }}"
           else
             echo Push
             export PREVIOUS_SHA="${{ github.event.before }}"
-            # export CURRENT_SHA="$GITHUB_SHA"
           fi
-
           export CURRENT_SHA="$GITHUB_SHA"
 
           echo PREVIOUS_SHA: $PREVIOUS_SHA
           echo CURRENT_SHA: $CURRENT_SHA
-          echo GITHUB_SHA: $GITHUB_SHA
+
+          git fetch origin $PREVIOUS_SHA --depth=1
 
           JSON_PACKAGES=$( python generate_matrix.py )
           echo $JSON_PACKAGES
@@ -81,7 +51,7 @@ jobs:
       matrix:
         os: [windows-2019]
         compiler: [msvc]
-        package: ${{fromJson(needs.generate-matrix.outputs.packages)}}
+        package: ${{ fromJson(needs.generate-matrix.outputs.packages) }}
 
     runs-on: ${{ matrix.os }}
 
@@ -106,7 +76,7 @@ jobs:
           conan config set general.revisions_enabled=1
           conan user "${{ secrets.GITLAB_USERNAME }}" -r gitlab -p "${{ secrets.GITLAB_ACCESS_TOKEN }}"
 
-      - name: Create ${{ matrix.package }} conan package
+      - name: Create ${{ matrix.package }} package
         shell: bash
         run: |
           export PACKAGE_NAME=${{ matrix.package }}
@@ -116,8 +86,9 @@ jobs:
           conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -s build_type=Release
 
           if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo DRY UPLOAD
             conan upload $PACKAGE_VERSION --all --check --remote gitlab --skip-upload
           else
             echo ACTUAL UPLOAD
-            # conan upload $PACKAGE_VERSION --all --check --remote gitlab
+            conan upload $PACKAGE_VERSION --all --check --remote gitlab
           fi
