@@ -34,6 +34,7 @@ if check_changes(GITHUB_WORKFLOWS_PATH):
 else:
     selected_list = packages_to_build
 
-matrix_json = '{"package": ["' + '", "'.join(selected_list) + '"]}'
+#matrix_json = '{"package": ["' + '", "'.join(selected_list) + '"]}'
+matrix_json = '["' + '", "'.join(selected_list) + '"]'
 
 print(matrix_json)
