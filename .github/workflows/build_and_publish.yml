@@ -24,6 +24,20 @@ jobs:
         if: ${{ github.event_name == 'push' && github.event.ref == 'refs/heads/master' }}
         uses: actions/checkout@v2
 
+      - name: Git diff test
+        run: |
+          if [ $GITHUB_BASE_REF ]; then
+            echo Pull
+            # export PREVIOUS_SHA="origin/$GITHUB_BASE_REF"
+            export PREVIOUS_SHA="${{ github.event.pull_request.base.sha }}"
+            export CURRENT_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            echo Push
+            export PREVIOUS_SHA="${{ github.event.before }}"
+            export CURRENT_SHA="$GITHUB_SHA"
+          fi
+          git diff --name-only $PREVIOUS_SHA $CURRENT_SHA -- ./packages/imgui
+
       # About $GITHUB_SHA https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
       # Don't know if I should use "origin/$GITHUB_BASE_REF" or ${{ github.event.pull_request.base.sha }}, same?
       - name: Check changed packages and generate matrix
