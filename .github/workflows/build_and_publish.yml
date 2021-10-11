@@ -14,25 +14,27 @@ jobs:
       packages: ${{ steps.set-matrix.outputs.packages }}
 
     steps:
-      - name: Get source code (Pull request)
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+      #- name: Get source code (Pull request)
+      #  if: ${{ github.event_name == 'pull_request' }}
+      #  uses: actions/checkout@v2
+      #  with:
+      #    ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Get source code (Push to master)
-        if: ${{ github.event_name == 'push' && github.event.ref == 'refs/heads/master' }}
+        #if: ${{ github.event_name == 'push' && github.event.ref == 'refs/heads/master' }}
         uses: actions/checkout@v2
 
       - name: Git diff test
         run: |
           if [ $GITHUB_BASE_REF ]; then
             echo Pull
+            git fetch origin ${{ github.event.pull_request.base.sha }} --depth=1
             # export PREVIOUS_SHA="origin/$GITHUB_BASE_REF"
             export PREVIOUS_SHA="${{ github.event.pull_request.base.sha }}"
             export CURRENT_SHA="${{ github.event.pull_request.head.sha }}"
           else
             echo Push
+            git fetch origin ${{ github.event.before }} --depth=1
             export PREVIOUS_SHA="${{ github.event.before }}"
             export CURRENT_SHA="$GITHUB_SHA"
           fi
