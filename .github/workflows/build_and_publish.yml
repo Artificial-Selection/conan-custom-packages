@@ -31,13 +31,16 @@ jobs:
             git fetch origin ${{ github.event.pull_request.base.sha }} --depth=1
             # export PREVIOUS_SHA="origin/$GITHUB_BASE_REF"
             export PREVIOUS_SHA="${{ github.event.pull_request.base.sha }}"
-            export CURRENT_SHA="${{ github.event.pull_request.head.sha }}"
+            # export CURRENT_SHA="${{ github.event.pull_request.head.sha }}"
           else
             echo Push
             git fetch origin ${{ github.event.before }} --depth=1
             export PREVIOUS_SHA="${{ github.event.before }}"
-            export CURRENT_SHA="$GITHUB_SHA"
+            # export CURRENT_SHA="$GITHUB_SHA"
           fi
+
+          CURRENT_SHA="$GITHUB_SHA"
+
           git log --graph --all
           git diff --name-only $PREVIOUS_SHA $CURRENT_SHA -- ./packages/imgui
 
