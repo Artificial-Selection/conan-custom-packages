@@ -74,9 +74,9 @@ jobs:
           pip install conan
 
       - name: Setup conan
-        shell: powershell
+        shell: bash
         run: |
-          $env:CONAN_USER_HOME=$(Get-Location)
+          export CONAN_USER_HOME=$( $PWD )
           conan remote add gitlab https://gitlab.com/api/v4/projects/28364651/packages/conan
           conan config set general.revisions_enabled=1
           conan user "${{ secrets.GITLAB_USERNAME }}" -r gitlab -p "${{ secrets.GITLAB_ACCESS_TOKEN }}"
