@@ -84,8 +84,7 @@ jobs:
       - name: Create ${{ matrix.package }} package
         shell: bash
         run: |
-          echo CONAN_USER_HOME $CONAN_USER_HOME
-
+          export CONAN_USER_HOME=$( PWD )
           export PACKAGE_NAME=${{ matrix.package }}
           PACKAGE_VERSION=$( python get_current_version.py )
           # PROFILE_PATH=$( ".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" )
