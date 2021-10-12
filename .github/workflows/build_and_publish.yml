@@ -71,7 +71,7 @@ jobs:
           pip install conan
 
       - name: Setup conan
-        uses: powershell
+        shell: powershell
         run: |
           $env:CONAN_USER_HOME=$(Get-Location)
           conan remote add gitlab https://gitlab.com/api/v4/projects/28364651/packages/conan
