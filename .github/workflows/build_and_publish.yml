@@ -76,7 +76,7 @@ jobs:
       - name: Setup conan
         shell: bash
         run: |
-          export CONAN_USER_HOME=$( $PWD )
+          export CONAN_USER_HOME=$( PWD )
           conan remote add gitlab https://gitlab.com/api/v4/projects/28364651/packages/conan
           conan config set general.revisions_enabled=1
           conan user "${{ secrets.GITLAB_USERNAME }}" -r gitlab -p "${{ secrets.GITLAB_ACCESS_TOKEN }}"
