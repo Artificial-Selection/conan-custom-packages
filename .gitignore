@@ -1,0 +1,4 @@
+.conan/**
+!.conan/profiles/
+!.conan/profiles/**
+.conan/profiles/default

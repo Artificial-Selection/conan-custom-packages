@@ -70,8 +70,10 @@ jobs:
           pip install wheel setuptools
           pip install conan
 
-      - name: Setup conan.conf
+      - name: Setup conan
+        uses: powershell
         run: |
+          $env:CONAN_USER_HOME=$(Get-Location)
           conan remote add gitlab https://gitlab.com/api/v4/projects/28364651/packages/conan
           conan config set general.revisions_enabled=1
           conan user "${{ secrets.GITLAB_USERNAME }}" -r gitlab -p "${{ secrets.GITLAB_ACCESS_TOKEN }}"
@@ -79,14 +81,16 @@ jobs:
       - name: Create ${{ matrix.package }} package
         shell: bash
         run: |
+          echo CONAN_USER_HOME $CONAN_USER_HOME
+
           export PACKAGE_NAME=${{ matrix.package }}
           PACKAGE_VERSION=$( python get_current_version.py )
           # PROFILE_PATH=$( ".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" )
 
           # echo $PROFILE_PATH
 
-          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" -s build_type=Debug
-          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" -s build_type=Release
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" -s compiler.runtime_type=Debug
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" -s compiler.runtime_type=Release
 
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo DRY UPLOAD
