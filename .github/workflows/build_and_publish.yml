@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019]
+        os: [windows-2022]
         compiler: [msvc]
         package: ${{ fromJson(needs.generate-matrix.outputs.packages) }}
 
@@ -58,6 +58,14 @@ jobs:
     steps:
       - name: Get source code
         uses: actions/checkout@v2
+
+      - name: Setup VisualStudio Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
 
       - name: Install python
         uses: actions/setup-python@v2
@@ -70,8 +78,10 @@ jobs:
           pip install wheel setuptools
           pip install conan
 
-      - name: Setup conan.conf
+      - name: Setup conan
+        shell: bash
         run: |
+          export CONAN_USER_HOME=$( PWD )
           conan remote add gitlab https://gitlab.com/api/v4/projects/28364651/packages/conan
           conan config set general.revisions_enabled=1
           conan user "${{ secrets.GITLAB_USERNAME }}" -r gitlab -p "${{ secrets.GITLAB_ACCESS_TOKEN }}"
@@ -79,11 +89,15 @@ jobs:
       - name: Create ${{ matrix.package }} package
         shell: bash
         run: |
+          export CONAN_USER_HOME=$( PWD )
           export PACKAGE_NAME=${{ matrix.package }}
           PACKAGE_VERSION=$( python get_current_version.py )
+          # PROFILE_PATH=$( ".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" )
 
-          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -s build_type=Debug
-          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -s build_type=Release
+          # echo $PROFILE_PATH
+
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" -s compiler.runtime_type=Debug
+          conan create ./packages/$PACKAGE_NAME $PACKAGE_VERSION -pr=".conan/profiles/${{ matrix.os }}_${{ matrix.compiler }}" -s compiler.runtime_type=Release
 
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo DRY UPLOAD

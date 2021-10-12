@@ -1,0 +1,10 @@
+[settings]
+os=Windows
+arch=x86_64
+compiler=msvc
+compiler.version=19.30
+compiler.runtime=static
+compiler.cppstd=20
+
+[env]
+CONAN_CMAKE_GENERATOR=Ninja
